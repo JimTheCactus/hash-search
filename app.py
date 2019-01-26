@@ -12,8 +12,18 @@
 
 
 # Pull in the hash tools
+import os
 import secrets
 import hashlib
+import redis
+
+
+# Server to connect to.
+server = os.getenv('REDIS_SERVER','redis1')
+
+# Connect to the server
+r = redis.StrictRedis(host=server, port=6379, db=0)
+
 
 # Set the intial number for the search
 initial_n = secrets.randbits(255)
@@ -68,7 +78,17 @@ while True:
         longest_hash = result
         longest_run = bits
         longest_text = msg
-        print("Total bits:", bits, " hash:", longest_hash.hex(), "msg:", "'"+longest_text.decode('utf-8')+"'", flush=True)
+        posted = r.setnx(
+            "hash-search/{0}".format(longest_run).encode("utf-8"),
+            "{0} {1}".format(longest_text.decode('utf-8'),longest_hash.hex()).encode("utf-8")
+            )
+        print(
+            "Total bits:", bits,
+            "hash:", longest_hash.hex(),
+            "msg:", "'" + longest_text.decode('utf-8') + "'",
+            "posted:", posted,
+            flush=True
+            )
         f = open("preimage-longest.txt", "w")
         f.write(longest_text.decode('utf-8') + " " + longest_hash.hex())
         f.write("\n")
